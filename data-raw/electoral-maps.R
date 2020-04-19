@@ -99,3 +99,26 @@ usethis::use_data(nat_map10, overwrite = T, compress = "xz")
 usethis::use_data(nat_map13, overwrite = T, compress = "xz")
 usethis::use_data(nat_map16, overwrite = T, compress = "xz")
 usethis::use_data(nat_map19, overwrite = T, compress = "xz")
+
+
+# new one requires map data to be moved to extra-data though??
+# see nat_map_download and nat_data_download
+# adding below to move data to extra-data folder
+
+# there is no base function to move a file, so will copy then delete
+# nat map
+
+# purrr::walk(seq(1, 19, by = 3), ~{
+#   from <- sprintf("data/nat_map%.2d.rda", .x)
+#   to <- sprintf("extra-data/nat_map%.2d.rda", .x)
+#   file.copy(from, to, overwrite = TRUE)
+#   file.remove(from)
+# })
+
+# nat data
+# purrr::walk(seq(1, 19, by = 3), ~{
+#   from <- sprintf("data/nat_data%.2d.rda", .x)
+#   to <- sprintf("extra-data/nat_data%.2d.rda", .x)
+#   file.copy(from, to, overwrite = TRUE)
+#   file.remove(from)
+# })
