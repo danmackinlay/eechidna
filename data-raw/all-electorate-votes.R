@@ -8,25 +8,25 @@ library(tidyverse)
 
 # Function to re-label parties so that names are common
 relabel_parties <- function(df, PartyNm = PartyNm) {
-  out <- df %>% 
-    ungroup %>% 
+  out <- df %>%
+    ungroup %>%
     mutate(PartyNm = ifelse(
       PartyNm %in% c("AUSTRALIAN LABOR PARTY (NORTHERN TERRITORY) BRANCH",  "LABOR", "AUSTRALIAN LABOR PARTY (ACT BRANCH)", "AUSTRALIAN LABOR PARTY (ALP)", "COUNTRY LABOR"), "AUSTRALIAN LABOR PARTY",
       ifelse(PartyNm %in% c("C.L.P.", "COUNTRY LIBERALS (NT)", "LIBERAL NATIONAL PARTY OF QUEENSLAND", "CLP-THE TERRITORY PARTY", "LIBERALS", "LIBERAL"), "LIBERAL PARTY",
-        
+
         ifelse(PartyNm %in% c("THE NATIONALS", "NATIONAL PARTY", "NATIONALS"), "NATIONAL PARTY",
-          
-          ifelse(PartyNm %in% c("THE GREENS (WA)", "AUSTRALIAN GREENS"), "THE GREENS", 
-            ifelse(PartyNm %in% c(""), "INFORMAL", 
+
+          ifelse(PartyNm %in% c("THE GREENS (WA)", "THE GREENS (VIC)", "AUSTRALIAN GREENS"), "THE GREENS",
+            ifelse(PartyNm %in% c(""), "INFORMAL",
               ifelse(PartyNm %in% c("AUSTRALIAN DEMOCRATS"), "DEMOCRATS",
                 ifelse(PartyNm %in% c("NEW COUNTRY"), "NEW COUNTRY PARTY",
-                  ifelse(PartyNm %in% c("ONE NATION WA", "PAULINE HANSON'S ONE NATION (NSW DIVISION)", "PAULINE HANSON'S ONE NATION"), "ONE NATION", 
-                    ifelse(PartyNm %in% c("SEX PARTY"), "AUSTRALIAN SEX PARTY", 
+                  ifelse(PartyNm %in% c("ONE NATION WA", "PAULINE HANSON'S ONE NATION (NSW DIVISION)", "PAULINE HANSON'S ONE NATION"), "ONE NATION",
+                    ifelse(PartyNm %in% c("SEX PARTY"), "AUSTRALIAN SEX PARTY",
                       ifelse(PartyNm %in% c("CHRISTIAN DEMOCRATIC PARTY (FRED NILE GROUP)", "CDP CHRISTIAN PARTY"), "CHRISTIAN DEMOCRATIC PARTY",
                         ifelse(PartyNm %in% c("CITIZENS ELECTORAL COUNCIL OF AUSTRALIA"), "CITIZENS ELECTORAL COUNCIL",
-                          ifelse(PartyNm %in% c("AUSTRALIAN COUNTRY PARTY"), "COUNTRY ALLIANCE", 
+                          ifelse(PartyNm %in% c("AUSTRALIAN COUNTRY PARTY"), "COUNTRY ALLIANCE",
                             ifelse(PartyNm %in% c("DEMOCRATIC LABOUR PARTY (DLP)", "DLP DEMOCRATIC LABOUR PARTY", "D.L.P. - DEMOCRATIC LABOR PARTY"), "DEMOCRATIC LABOR PARTY",
-                              ifelse(PartyNm %in% c("FAMILY FIRST PARTY"), "FAMILY FIRST", 
+                              ifelse(PartyNm %in% c("FAMILY FIRST PARTY"), "FAMILY FIRST",
                                 ifelse(PartyNm %in% c("SCIENCE PARTY"), "FUTURE PARTY",
                                   ifelse(PartyNm %in% c("HELP END MARIJUANA PROHIBITION"), "MARIJUANA (HEMP) PARTY",
                                     ifelse(PartyNm %in% c("LDP", "LIBERAL DEMOCRATS (LDP)"), "LIBERAL DEMOCRATS",
@@ -43,14 +43,14 @@ relabel_parties <- function(df, PartyNm = PartyNm) {
 
 reabbrev_parties <- function(df, PartyNm = PartyNm) {
   out <- df %>%
-    ungroup %>% 
-    mutate(PartyAb = ifelse(PartyAb %in% c("CLR", "ALP"), "ALP", 
-      ifelse(PartyAb %in% c("CLP", "LP", "LNP"), "LP", 
-        ifelse(PartyAb %in% c("GRN", "GWA", "TG"), "GRN", 
+    ungroup %>%
+    mutate(PartyAb = ifelse(PartyAb %in% c("CLR", "ALP"), "ALP",
+      ifelse(PartyAb %in% c("CLP", "LP", "LNP"), "LP",
+        ifelse(PartyAb %in% c("GRN", "GWA", "GVIC", "TG"), "GRN",
           ifelse(PartyAb %in% c("HAN","ON"), "ON",
-            ifelse(is.na(PartyAb), "IND", 
-              PartyAb)))))) 
-  
+            ifelse(is.na(PartyAb), "IND",
+              PartyAb))))))
+
   return(out)
 }
 
@@ -58,7 +58,7 @@ reabbrev_parties <- function(df, PartyNm = PartyNm) {
 chr_upper <- function(df) {
   fc_cols <- sapply(df, class) == 'factor'
   df[, fc_cols] <- lapply(df[, fc_cols], as.character)
-  
+
   ch_cols <- sapply(df, class) == 'character'
   df[, ch_cols] <- lapply(df[, ch_cols], toupper)
   return(df)
@@ -76,12 +76,12 @@ chr_upper <- function(df) {
 #---- FIRST PREFERENCES ----
 pref19 <- read_csv("https://results.aec.gov.au/24310/Website/Downloads/HouseDopByDivisionDownload-24310.csv", skip = 1)
 
-fp19 <- pref19 %>% 
-  filter(CalculationType %in% c("Preference Count", "Preference Percent")) %>% 
-  group_by(StateAb, DivisionID, DivisionNm, CountNumber, BallotPosition, CandidateID, Surname, GivenNm, PartyAb, PartyNm, Elected, HistoricElected) %>% 
+fp19 <- pref19 %>%
+  filter(CalculationType %in% c("Preference Count", "Preference Percent")) %>%
+  group_by(StateAb, DivisionID, DivisionNm, CountNumber, BallotPosition, CandidateID, Surname, GivenNm, PartyAb, PartyNm, Elected, HistoricElected) %>%
   spread(key = CalculationType, value = CalculationValue) %>%
-  filter(CountNumber == 0) %>% 
-  ungroup() %>% 
+  filter(CountNumber == 0) %>%
+  ungroup() %>%
   select(-CountNumber) %>% #takes only % of first preference votes
   rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`)
 
@@ -89,13 +89,13 @@ fp19 <- pref19 %>%
 #---- TWO CANDIDATE PREFERRED ----
 # Distribution of preferences to the two candidates who came first and second in the election
 # add here total votes as well
-tcp19 <- pref19 %>% 
+tcp19 <- pref19 %>%
   group_by(DivisionID, PartyAb) %>%
   filter(CountNumber == max(CountNumber), CalculationType %in% c("Preference Count", "Preference Percent")) %>%
   arrange() %>%
-  filter(CalculationValue != 0) %>% 
-  spread(CalculationType, CalculationValue) %>% 
-  rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`) %>% 
+  filter(CalculationValue != 0) %>%
+  spread(CalculationType, CalculationValue) %>%
+  rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`) %>%
   select(-CountNumber)
 
 #---- TWO PARTY PREFERRED ----
@@ -103,9 +103,9 @@ tcp19 <- pref19 %>%
 # A distribution of preferences where, by convention, comparisons are made between the ALP and the leading Liberal/National candidates. In seats where the final two candidates are not from the ALP and the Liberal or National parties, a two party preferred count may be conducted to find the result of preference flows to the ALP and the Liberal/National candidates.
 
 tpp19 <- read_csv("https://results.aec.gov.au/24310/Website/Downloads/HouseTppByDivisionDownload-24310.csv", skip = 1) %>%
-  arrange(DivisionID) %>% 
+  arrange(DivisionID) %>%
   rename(LNP_Votes = `Liberal/National Coalition Votes`, LNP_Percent = `Liberal/National Coalition Percentage`,
-    ALP_Votes = `Australian Labor Party Votes`, ALP_Percent = `Australian Labor Party Percentage`) %>% 
+    ALP_Votes = `Australian Labor Party Votes`, ALP_Percent = `Australian Labor Party Percentage`) %>%
   select(-PartyAb)
 
 
@@ -134,12 +134,12 @@ usethis::use_data(tpp19, overwrite = T, compress = "xz")
 #---- FIRST PREFERENCES ----
 pref16 <- read_csv("https://results.aec.gov.au/20499/Website/Downloads/HouseDopByDivisionDownload-20499.csv", skip = 1)
 
-fp16 <- pref16 %>% 
-  filter(CalculationType %in% c("Preference Count", "Preference Percent")) %>% 
-  group_by(StateAb, DivisionID, DivisionNm, CountNumber, BallotPosition, CandidateID, Surname, GivenNm, PartyAb, PartyNm, Elected, HistoricElected) %>% 
+fp16 <- pref16 %>%
+  filter(CalculationType %in% c("Preference Count", "Preference Percent")) %>%
+  group_by(StateAb, DivisionID, DivisionNm, CountNumber, BallotPosition, CandidateID, Surname, GivenNm, PartyAb, PartyNm, Elected, HistoricElected) %>%
   spread(key = CalculationType, value = CalculationValue) %>%
-  filter(CountNumber == 0) %>% 
-  ungroup() %>% 
+  filter(CountNumber == 0) %>%
+  ungroup() %>%
   select(-CountNumber) %>% #takes only % of first preference votes
   rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`)
 
@@ -147,13 +147,13 @@ fp16 <- pref16 %>%
 #---- TWO CANDIDATE PREFERRED ----
 # Distribution of preferences to the two candidates who came first and second in the election
 # add here total votes as well
-tcp16 <- pref16 %>% 
+tcp16 <- pref16 %>%
   group_by(DivisionID, PartyAb) %>%
   filter(CountNumber == max(CountNumber), CalculationType %in% c("Preference Count", "Preference Percent")) %>%
   arrange() %>%
-  filter(CalculationValue != 0) %>% 
-  spread(CalculationType, CalculationValue) %>% 
-  rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`) %>% 
+  filter(CalculationValue != 0) %>%
+  spread(CalculationType, CalculationValue) %>%
+  rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`) %>%
   select(-CountNumber)
 
 #---- TWO PARTY PREFERRED ----
@@ -161,9 +161,9 @@ tcp16 <- pref16 %>%
 # A distribution of preferences where, by convention, comparisons are made between the ALP and the leading Liberal/National candidates. In seats where the final two candidates are not from the ALP and the Liberal or National parties, a two party preferred count may be conducted to find the result of preference flows to the ALP and the Liberal/National candidates.
 
 tpp16 <- read_csv("https://results.aec.gov.au/20499/Website/Downloads/HouseTppByDivisionDownload-20499.csv", skip = 1) %>%
-  arrange(DivisionID) %>% 
+  arrange(DivisionID) %>%
   rename(LNP_Votes = `Liberal/National Coalition Votes`, LNP_Percent = `Liberal/National Coalition Percentage`,
-    ALP_Votes = `Australian Labor Party Votes`, ALP_Percent = `Australian Labor Party Percentage`) %>% 
+    ALP_Votes = `Australian Labor Party Votes`, ALP_Percent = `Australian Labor Party Percentage`) %>%
   select(-PartyAb)
 
 
@@ -193,25 +193,25 @@ usethis::use_data(tpp16, overwrite = T, compress = "xz")
 
 pref13 <- read_csv("https://results.aec.gov.au/17496/Website/Downloads/HouseDopByDivisionDownload-17496.csv", skip = 1)
 
-fp13 <- pref13 %>% 
-  filter(CalculationType %in% c("Preference Count", "Preference Percent")) %>% 
-  group_by(StateAb, DivisionID, DivisionNm, CountNumber, BallotPosition, CandidateID, Surname, GivenNm, PartyAb, PartyNm, Elected, HistoricElected) %>% 
+fp13 <- pref13 %>%
+  filter(CalculationType %in% c("Preference Count", "Preference Percent")) %>%
+  group_by(StateAb, DivisionID, DivisionNm, CountNumber, BallotPosition, CandidateID, Surname, GivenNm, PartyAb, PartyNm, Elected, HistoricElected) %>%
   spread(key = CalculationType, value = CalculationValue) %>%
-  filter(CountNumber == 0) %>% 
-  ungroup() %>% 
+  filter(CountNumber == 0) %>%
+  ungroup() %>%
   select(-CountNumber) %>% #takes only % of first preference votes
   rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`)
 
 
 #--- TWO CANDIDATE PREFERRED ---#
 # Distribution of preferences to the two candidates who came first and second in the election
-tcp13 <- pref13 %>% 
+tcp13 <- pref13 %>%
   group_by(DivisionID, PartyAb) %>%
   filter(CountNumber == max(CountNumber), CalculationType %in% c("Preference Count", "Preference Percent")) %>%
   arrange() %>%
-  filter(CalculationValue != 0) %>% 
-  spread(CalculationType, CalculationValue) %>% 
-  rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`) %>% 
+  filter(CalculationValue != 0) %>%
+  spread(CalculationType, CalculationValue) %>%
+  rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`) %>%
   select(-CountNumber)
 
 
@@ -220,9 +220,9 @@ tcp13 <- pref13 %>%
 # A distribution of preferences where, by convention, comparisons are made between the ALP and the leading Liberal/National candidates. In seats where the final two candidates are not from the ALP and the Liberal or National parties, a two party preferred count may be conducted to find the result of preference flows to the ALP and the Liberal/National candidates.
 
 tpp13 <- read_csv("https://results.aec.gov.au/17496/Website/Downloads/HouseTppByDivisionDownload-17496.csv", skip = 1) %>%
-  arrange(DivisionID) %>% 
+  arrange(DivisionID) %>%
   rename(LNP_Votes = `Liberal/National Coalition Votes`, LNP_Percent = `Liberal/National Coalition Percentage`,
-    ALP_Votes = `Australian Labor Party Votes`, ALP_Percent = `Australian Labor Party Percentage`) %>% 
+    ALP_Votes = `Australian Labor Party Votes`, ALP_Percent = `Australian Labor Party Percentage`) %>%
   select(-PartyAb)
 
 
@@ -253,25 +253,25 @@ usethis::use_data(tpp13, overwrite = T, compress = "xz")
 
 pref10 <- read_csv("https://results.aec.gov.au/15508/Website/Downloads/HouseDopByDivisionDownload-15508.csv", skip = 1)
 
-fp10 <- pref10 %>% 
-  filter(CalculationType %in% c("Preference Count", "Preference Percent")) %>% 
-  group_by(StateAb, DivisionID, DivisionNm, CountNumber, BallotPosition, CandidateID, Surname, GivenNm, PartyAb, PartyNm, Elected, HistoricElected) %>% 
+fp10 <- pref10 %>%
+  filter(CalculationType %in% c("Preference Count", "Preference Percent")) %>%
+  group_by(StateAb, DivisionID, DivisionNm, CountNumber, BallotPosition, CandidateID, Surname, GivenNm, PartyAb, PartyNm, Elected, HistoricElected) %>%
   spread(key = CalculationType, value = CalculationValue) %>%
-  filter(CountNumber == 0) %>% 
-  ungroup() %>% 
+  filter(CountNumber == 0) %>%
+  ungroup() %>%
   select(-CountNumber) %>% #takes only % of first preference votes
   rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`)
 
 
 #--- TWO CANDIDATE PREFERRED ---#
 # Distribution of preferences to the two candidates who came first and second in the election
-tcp10 <- pref10 %>% 
+tcp10 <- pref10 %>%
   group_by(DivisionID, PartyAb) %>%
   filter(CountNumber == max(CountNumber), CalculationType %in% c("Preference Count", "Preference Percent")) %>%
   arrange() %>%
-  filter(CalculationValue != 0) %>% 
-  spread(CalculationType, CalculationValue) %>% 
-  rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`) %>% 
+  filter(CalculationValue != 0) %>%
+  spread(CalculationType, CalculationValue) %>%
+  rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`) %>%
   select(-CountNumber)
 
 
@@ -280,9 +280,9 @@ tcp10 <- pref10 %>%
 # A distribution of preferences where, by convention, comparisons are made between the ALP and the leading Liberal/National candidates. In seats where the final two candidates are not from the ALP and the Liberal or National parties, a two party preferred count may be conducted to find the result of preference flows to the ALP and the Liberal/National candidates.
 
 tpp10 <- read_csv("https://results.aec.gov.au/15508/Website/Downloads/HouseTppByDivisionDownload-15508.csv", skip = 1) %>%
-  arrange(DivisionID) %>% 
+  arrange(DivisionID) %>%
   rename(LNP_Votes = `Liberal/National Coalition Votes`, LNP_Percent = `Liberal/National Coalition Percentage`,
-    ALP_Votes = `Australian Labor Party Votes`, ALP_Percent = `Australian Labor Party Percentage`) %>% 
+    ALP_Votes = `Australian Labor Party Votes`, ALP_Percent = `Australian Labor Party Percentage`) %>%
   select(-PartyAb)
 
 
@@ -315,25 +315,25 @@ usethis::use_data(tpp10, overwrite = T, compress = "xz")
 
 pref07 <- read_csv("https://results.aec.gov.au/13745/Website/Downloads/HouseDopByDivisionDownload-13745.csv", skip = 1)
 
-fp07 <- pref07 %>% 
-  filter(CalculationType %in% c("Preference Count", "Preference Percent")) %>% 
-  group_by(StateAb, DivisionID, DivisionNm, CountNumber, BallotPosition, CandidateID, Surname, GivenNm, PartyAb, PartyNm, Elected, HistoricElected) %>% 
+fp07 <- pref07 %>%
+  filter(CalculationType %in% c("Preference Count", "Preference Percent")) %>%
+  group_by(StateAb, DivisionID, DivisionNm, CountNumber, BallotPosition, CandidateID, Surname, GivenNm, PartyAb, PartyNm, Elected, HistoricElected) %>%
   spread(key = CalculationType, value = CalculationValue) %>%
-  filter(CountNumber == 0) %>% 
-  ungroup() %>% 
+  filter(CountNumber == 0) %>%
+  ungroup() %>%
   select(-CountNumber) %>% #takes only % of first preference votes
   rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`)
 
 
 #--- TWO CANDIDATE PREFERRED ---#
 # Distribution of preferences to the two candidates who came first and second in the election
-tcp07 <- pref07 %>% 
+tcp07 <- pref07 %>%
   group_by(DivisionID, PartyAb) %>%
   filter(CountNumber == max(CountNumber), CalculationType %in% c("Preference Count", "Preference Percent")) %>%
   arrange() %>%
-  filter(CalculationValue != 0) %>% 
-  spread(CalculationType, CalculationValue) %>% 
-  rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`) %>% 
+  filter(CalculationValue != 0) %>%
+  spread(CalculationType, CalculationValue) %>%
+  rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`) %>%
   select(-CountNumber)
 
 
@@ -342,9 +342,9 @@ tcp07 <- pref07 %>%
 # A distribution of preferences where, by convention, comparisons are made between the ALP and the leading Liberal/National candidates. In seats where the final two candidates are not from the ALP and the Liberal or National parties, a two party preferred count may be conducted to find the result of preference flows to the ALP and the Liberal/National candidates.
 
 tpp07 <- read_csv("https://results.aec.gov.au/13745/Website/Downloads/HouseTppByDivisionDownload-13745.csv", skip = 1) %>%
-  arrange(DivisionID) %>% 
+  arrange(DivisionID) %>%
   rename(LNP_Votes = `Liberal/National Coalition Votes`, LNP_Percent = `Liberal/National Coalition Percentage`,
-    ALP_Votes = `Australian Labor Party Votes`, ALP_Percent = `Australian Labor Party Percentage`) %>% 
+    ALP_Votes = `Australian Labor Party Votes`, ALP_Percent = `Australian Labor Party Percentage`) %>%
   select(-PartyAb)
 
 
@@ -377,34 +377,34 @@ usethis::use_data(tpp07, overwrite = T, compress = "xz")
 
 pref04 <- read_csv("https://results.aec.gov.au/12246/results/Downloads/HouseDopByDivisionDownload-12246.csv", skip = 1)
 
-pref04 %>% 
-  group_by(DivisionNm) %>% 
-  filter(CountNumber == max(CountNumber)) %>% 
-  filter(CalculationType == "Preference Percent") 
+pref04 %>%
+  group_by(DivisionNm) %>%
+  filter(CountNumber == max(CountNumber)) %>%
+  filter(CalculationType == "Preference Percent")
 
-fp04 <- pref04 %>% 
-  filter(CalculationType %in% c("Preference Count", "Preference Percent")) %>% 
-  mutate(Elected = ifelse(is.na(SittingMemberFl), "N", "Y")) %>% 
-  select(-SittingMemberFl) %>% 
-  group_by(StateAb, DivisionID, DivisionNm, CountNumber, BallotPosition, CandidateID, Surname, GivenNm, PartyAb, PartyNm, Elected) %>% 
+fp04 <- pref04 %>%
+  filter(CalculationType %in% c("Preference Count", "Preference Percent")) %>%
+  mutate(Elected = ifelse(is.na(SittingMemberFl), "N", "Y")) %>%
+  select(-SittingMemberFl) %>%
+  group_by(StateAb, DivisionID, DivisionNm, CountNumber, BallotPosition, CandidateID, Surname, GivenNm, PartyAb, PartyNm, Elected) %>%
   spread(key = CalculationType, value = CalculationValue) %>%
-  filter(CountNumber == 0) %>% 
-  ungroup() %>% 
+  filter(CountNumber == 0) %>%
+  ungroup() %>%
   select(-CountNumber) %>% #takes only % of first preference votes
   rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`)
 
 
 #--- TWO CANDIDATE PREFERRED ---#
 # Distribution of preferences to the two candidates who came first and second in the election
-tcp04 <- pref04 %>% 
+tcp04 <- pref04 %>%
   group_by(DivisionID, PartyAb) %>%
   filter(CountNumber == max(CountNumber), CalculationType %in% c("Preference Count", "Preference Percent")) %>%
   arrange() %>%
-  filter(CalculationValue != 0) %>% 
-  spread(CalculationType, CalculationValue) %>% 
-  rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`) %>% 
-  select(-CountNumber) %>% 
-  mutate(Elected = ifelse(is.na(SittingMemberFl), "N", "Y")) %>% 
+  filter(CalculationValue != 0) %>%
+  spread(CalculationType, CalculationValue) %>%
+  rename(OrdinaryVotes = `Preference Count`, Percent = `Preference Percent`) %>%
+  select(-CountNumber) %>%
+  mutate(Elected = ifelse(is.na(SittingMemberFl), "N", "Y")) %>%
   select(-SittingMemberFl)
 
 
@@ -413,9 +413,9 @@ tcp04 <- pref04 %>%
 # A distribution of preferences where, by convention, comparisons are made between the ALP and the leading Liberal/National candidates. In seats where the final two candidates are not from the ALP and the Liberal or National parties, a two party preferred count may be conducted to find the result of preference flows to the ALP and the Liberal/National candidates.
 
 tpp04 <- read_csv("https://results.aec.gov.au/12246/results/Downloads/HouseTppByDivisionDownload-12246.csv", skip = 1) %>%
-  arrange(DivisionID) %>% 
+  arrange(DivisionID) %>%
   rename(LNP_Votes = `Liberal/National Coalition Votes`, LNP_Percent = `Liberal/National Coalition Percentage`,
-    ALP_Votes = `Australian Labor Party Votes`, ALP_Percent = `Australian Labor Party Percentage`) %>% 
+    ALP_Votes = `Australian Labor Party Votes`, ALP_Percent = `Australian Labor Party Percentage`) %>%
   select(-PartyAb)
 
 #---- RELABEL PARTY NAMES ----
@@ -468,23 +468,23 @@ for (j in 1:(length(states) - 4)) {
   row_party <- count_rows[,1] - 1 #party
   row_votes <- count_rows[,1] + 1 #FIRST
   col_vals <- as.data.frame(which(pref01_temp == "Votes", arr.ind=TRUE))
-  
+
   #Loop over i = divisions, to generate one row for each candidate
   for (i in 1:n_divisions) {
     locate = sort(unique(col_vals$row))[i]
-    
+
     divname = toupper(pref01_temp[row_div_id,1][[1]][i])
-    
+
     surnames = toupper(pref01_temp[row_surname[i],col_vals[col_vals$row == locate,2]]) #is a tibble of the names
     firstnames = toupper(pref01_temp[row_firstname[i],col_vals[col_vals$row == locate,2]])
     partyabrev = toupper(pref01_temp[row_party[i],col_vals[col_vals$row == locate,2]])
     votes <- pref01_temp[row_votes[i],as.logical(!is.na(pref01_temp[row_votes[i],]))][-1]
     votes <- as.numeric(votes[seq(2,length(votes),2)])
-    
+
     temp <- data.frame(StateAb = rep(state_name,length(partyabrev)), DivisionNm = rep(divname,length(partyabrev)), Surname = surnames, GivenNm = firstnames, PartyAb = partyabrev, Elected = ifelse(votes == max(votes), "Y", "N"), CalculationValue = votes)
     fp01 <- rbind(fp01,temp)
   }
-  
+
 }
 
 #For TAS, VIC, QLD, WA
@@ -500,24 +500,24 @@ for (j in (length(states)-3):length(states)) {
   row_party <- count_rows[,1] - 1 #party
   row_votes <- count_rows[,1] + 1 #FIRST
   col_vals <- as.data.frame(which(pref01_temp == "%", arr.ind=TRUE))
-  
+
   #Loop over i = divisions, to generate one row for each candidate
-  
+
   for (i in 1:n_divisions) {
     locate = sort(unique(col_vals$row))[i]
-    
+
     divname = toupper(pref01_temp[row_div_id,1][[1]][i])
-    
+
     surnames = toupper(pref01_temp[row_surname[i],col_vals[col_vals$row == locate,2]]) #is a tibble of the names
     firstnames = toupper(pref01_temp[row_firstname[i],col_vals[col_vals$row == locate,2]])
     partyabrev = toupper(pref01_temp[row_party[i],col_vals[col_vals$row == locate,2]])
     votes <- pref01_temp[row_votes[i],as.logical(!is.na(pref01_temp[row_votes[i],]))][-1]
     votes <- as.numeric(votes[seq(2,length(votes),2)])
-    
+
     temp <- data.frame(StateAb = rep(state_name,length(partyabrev)), DivisionNm = rep(divname,length(partyabrev)), Surname = surnames, GivenNm = firstnames, PartyAb = partyabrev, Elected = ifelse(votes == max(votes), "Y", "N"), CalculationValue = votes)
     fp01 <- rbind(fp01,temp)
   }
-  
+
 }
 
 #Remove first row of zeros, and reset rownames
@@ -554,37 +554,37 @@ for (j in 1:length(states)) {
   n_divisions <- nrow(row_cand)
   row_div_id <- row_cand[,1] - 2 #where divisions are stored
   col_party <- unique(which(tcp01_temp == "Party", arr.ind=TRUE)[,2]) #column reference for party name
-  
+
   #Loop over i = divisions, to generate one row for each candidate
   for (i in 1:n_divisions) {
     divname = toupper(tcp01_temp[row_div_id,1][[1]][i])
-    
+
     name1 = toupper(tcp01_temp[row_fulldist[i] + 1, col_party - 1])
     name2 = toupper(tcp01_temp[row_fulldist[i] + 2, col_party - 1])
     names = strsplit(c(name1, name2), ", ")
     firstnames = c(names[[1]][2], names[[2]][2])
     surnames = c(names[[1]][1], names[[2]][1])
-    
+
     party1 = tcp01_temp[row_fulldist[i] + 1, col_party][[1]]
     party2 = tcp01_temp[row_fulldist[i] + 2, col_party][[1]]
     partyabrev = c(party1, party2)
-    
+
     swing1 = tcp01_temp[row_fulldist[i] + 1, col_party + 3][[1]]
     swing2 = tcp01_temp[row_fulldist[i] + 2, col_party + 3][[1]]
     swing = c(swing1, swing2)
-    
+
     votes1 = tcp01_temp[row_fulldist[i] + 1, col_party + 2][[1]]
     votes2 = tcp01_temp[row_fulldist[i] + 2, col_party + 2][[1]]
     votes = c(votes1, votes2)
-    
+
     temp <- data.frame(StateAb = rep(state_name,length(partyabrev)), DivisionNm = rep(divname,length(partyabrev)), Surname = surnames, GivenNm = firstnames, PartyAb = partyabrev, Elected = ifelse(votes == max(votes), "Y", "N"), CalculationValue = votes, Swing = swing)
     tcp01 <- rbind(tcp01,temp)
   }
-  
+
 }
 
 #Remove first row of zeros, and reset rownames
-tcp01 <- tcp01[-1,] %>% 
+tcp01 <- tcp01[-1,] %>%
   rename(Percent = CalculationValue)
 rownames(tcp01) <- 1:nrow(tcp01)
 tcp01$DivisionNm <- as.character(tcp01$DivisionNm)
@@ -597,7 +597,7 @@ for (i in 1:nrow(tcp01)) {
 }
 
 # Make Percent and Swing numeric
-tcp01 <- tcp01 %>% 
+tcp01 <- tcp01 %>%
   mutate(Percent = as.numeric(Percent), Swing = as.numeric(Swing))
 
 
@@ -605,13 +605,13 @@ tcp01 <- tcp01 %>%
 # Preferences distribution only to Labor (ALP) and Coalition (LP, NP, LNQ, CLP)
 # A distribution of preferences where, by convention, comparisons are made between the ALP and the leading Liberal/National candidates. In seats where the final two candidates are not from the ALP and the Liberal or National parties, a two party preferred count may be conducted to find the result of preference flows to the ALP and the Liberal/National candidates.
 
-tpp01 <- read_csv("data-raw/HouseTppByDivision2001.csv")[-(1:17), ] %>% 
-  rename("DivisionNm" = "House of Representatives: Election 2001 - National", "ALP_Votes" = "X2", "ALP_Percent" = "X3", "LNP_Votes" = "X4", "LNP_Percent" = "X5", "TotalVotes" = "X6", "Swing" = "X7") %>% 
-  filter(!is.na(DivisionNm), !DivisionNm %in% c("Division", "State Total", "Territory Total")) %>% 
-  select(-X8) %>% 
+tpp01 <- read_csv("data-raw/HouseTppByDivision2001.csv")[-(1:17), ] %>%
+  rename("DivisionNm" = "House of Representatives: Election 2001 - National", "ALP_Votes" = "X2", "ALP_Percent" = "X3", "LNP_Votes" = "X4", "LNP_Percent" = "X5", "TotalVotes" = "X6", "Swing" = "X7") %>%
+  filter(!is.na(DivisionNm), !DivisionNm %in% c("Division", "State Total", "Territory Total")) %>%
+  select(-X8) %>%
   mutate(StateAb = c(rep("NSW", 51), rep("VIC", 38), rep("QLD", 28), rep("WA", 16), rep("SA", 13), rep("TAS", 6), rep("ACT", 3), rep("NT", 3)),
-    LNP_Votes = as.numeric(LNP_Votes), LNP_Percent = as.numeric(LNP_Percent), ALP_Votes = as.numeric(ALP_Votes), ALP_Percent = as.numeric(ALP_Percent), TotalVotes = as.numeric(TotalVotes), Swing = as.numeric(Swing)) %>% 
-  filter(!is.na(ALP_Votes)) %>% 
+    LNP_Votes = as.numeric(LNP_Votes), LNP_Percent = as.numeric(LNP_Percent), ALP_Votes = as.numeric(ALP_Votes), ALP_Percent = as.numeric(ALP_Percent), TotalVotes = as.numeric(TotalVotes), Swing = as.numeric(Swing)) %>%
+  filter(!is.na(ALP_Votes)) %>%
   select(DivisionNm, StateAb, LNP_Votes, LNP_Percent, ALP_Votes, ALP_Percent, TotalVotes, Swing)
 
 
@@ -645,29 +645,29 @@ library(dplyr)
 
 # Use the 2016 Census IDs as the default
 
-my_ids <- abs2016 %>% 
-  select(ID, DivisionNm) %>% 
-  rename(UniqueID = ID) %>% 
-  unique() %>% 
+my_ids <- abs2016 %>%
+  select(ID, DivisionNm) %>%
+  rename(UniqueID = ID) %>%
+  unique() %>%
   arrange(UniqueID)
 
 # Add DivisionNms that are not in 2016
 
-my_ids <- my_ids %>% 
-  full_join(abs2013 %>% select(DivisionNm)) %>% 
-  full_join(abs2010 %>% select(DivisionNm)) %>% 
-  full_join(abs2007 %>% select(DivisionNm)) %>% 
-  full_join(abs2004 %>% select(DivisionNm)) %>% 
+my_ids <- my_ids %>%
+  full_join(abs2013 %>% select(DivisionNm)) %>%
+  full_join(abs2010 %>% select(DivisionNm)) %>%
+  full_join(abs2007 %>% select(DivisionNm)) %>%
+  full_join(abs2004 %>% select(DivisionNm)) %>%
   full_join(abs2001 %>% select(DivisionNm))
 
 # Add UniqueID for divisions that changed their name and for divisions that were abolished before 2016
 # Renamed electorates: FRASER became FENNER, PROSPECT became MCMAHON, THROSBY became WHITLAM
 
-my_ids <- my_ids %>% 
-  mutate(UniqueID = ifelse(DivisionNm == "BONYTHON", 412, 
-    ifelse(DivisionNm == "BURKE", 238, 
-      ifelse(DivisionNm == "CHARLTON", 148,  
-        ifelse(DivisionNm == "FRASER", 802, 
+my_ids <- my_ids %>%
+  mutate(UniqueID = ifelse(DivisionNm == "BONYTHON", 412,
+    ifelse(DivisionNm == "BURKE", 238,
+      ifelse(DivisionNm == "CHARLTON", 148,
+        ifelse(DivisionNm == "FRASER", 802,
           ifelse(DivisionNm == "GWYDIR", 149,
             ifelse(DivisionNm == "KALGOORLIE", 517,
               ifelse(DivisionNm == "LOWE", 150,
@@ -683,144 +683,144 @@ load("data-raw/supplement/my_ids.rda")
 
 # 2016
 
-fp16 <- fp16 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+fp16 <- fp16 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-tpp16 <- tpp16 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+tpp16 <- tpp16 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-tcp16 <- tcp16 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+tcp16 <- tcp16 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-abs2016 <- abs2016 %>% 
+abs2016 <- abs2016 %>%
   rename(UniqueID = ID)
 
 # 2013
 
-fp13 <- fp13 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+fp13 <- fp13 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-tpp13 <- tpp13 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+tpp13 <- tpp13 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-tcp13 <- tcp13 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+tcp13 <- tcp13 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-abs2013 <- abs2013 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
+abs2013 <- abs2013 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
   select(UniqueID, everything())
 
 # 2011
 
-abs2011 <- abs2011 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-ID) %>% 
+abs2011 <- abs2011 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-ID) %>%
   select(UniqueID, everything())
 
 # 2010
 
-fp10 <- fp10 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+fp10 <- fp10 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-tpp10 <- tpp10 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+tpp10 <- tpp10 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-tcp10 <- tcp10 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+tcp10 <- tcp10 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-abs2010 <- abs2010 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
+abs2010 <- abs2010 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
   select(UniqueID, everything())
 
 # 2007
 
-fp07 <- fp07 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+fp07 <- fp07 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-tpp07 <- tpp07 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+tpp07 <- tpp07 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-tcp07 <- tcp07 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+tcp07 <- tcp07 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-abs2007 <- abs2007 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
+abs2007 <- abs2007 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
   select(UniqueID, everything())
 
 # 2006
 
-abs2006 <- abs2006 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-ID) %>% 
+abs2006 <- abs2006 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-ID) %>%
   select(UniqueID, everything())
 
-abs2006_e07 <- abs2006_e07 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-ID) %>% 
+abs2006_e07 <- abs2006_e07 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-ID) %>%
   select(UniqueID, everything())
 
 # 2004
 
-fp04 <- fp04 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+fp04 <- fp04 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-tpp04 <- tpp04 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+tpp04 <- tpp04 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-tcp04 <- tcp04 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-DivisionID) %>% 
+tcp04 <- tcp04 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-DivisionID) %>%
   select(UniqueID, everything())
 
-abs2004 <- abs2004 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
+abs2004 <- abs2004 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
   select(UniqueID, everything())
 
 # 2001
 
-fp01 <- fp01 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
+fp01 <- fp01 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
   select(UniqueID, everything())
 
-tpp01 <- tpp01 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
+tpp01 <- tpp01 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
   select(UniqueID, everything())
 
-tcp01 <- tcp01 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
+tcp01 <- tcp01 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
   select(UniqueID, everything())
 
-abs2001 <- abs2001 %>% 
-  left_join(my_ids, by = "DivisionNm") %>% 
-  select(-ID) %>% 
+abs2001 <- abs2001 %>%
+  left_join(my_ids, by = "DivisionNm") %>%
+  select(-ID) %>%
   select(UniqueID, everything())
 
 # Save
